@@ -54,6 +54,7 @@ int main(void)
         return 1;
     }
 
+    int ret;
     bool quit = false;
     while (!quit) {
         SDL_Event event;
@@ -62,8 +63,21 @@ int main(void)
             case SDL_QUIT: quit = true; break;
             }
         }
-
         // Update
+
+        ret = SDL_SetRenderDrawColor(renderer, 24, 24, 24, 255); // Set Background Color
+        if (ret != 0) {
+            fprintf(stderr, "[ERROR] SDL_SetRenderDrawColor Failed: %s\n", SDL_GetError());
+            return 1;
+        }
+
+        ret = SDL_RenderClear(renderer); // Clear Background with Set Color
+        if (ret != 0) {
+            fprintf(stderr, "[ERROR] SDL_SetRenderClear Failed: %s\n", SDL_GetError());
+            return 1;
+        }
+
+        SDL_RenderPresent(renderer); // Present Background with Changes
     }
 
     SDL_DestroyRenderer(renderer);
