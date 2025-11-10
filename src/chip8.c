@@ -187,6 +187,9 @@ bool chip8_execute_opcode()
             fprintf(stderr, "[ERROR] Unknown Last Byte `0X%X` For Opcode 0X%X\n", (opcode & 0XFF), opcode);
             return false;
         }
+
+        fprintf(stderr, "[PANIC] Unreachable\n");
+        return false;
     } break;
 
     case 0X1: {
@@ -277,7 +280,7 @@ bool chip8_execute_opcode()
         }
 
         fprintf(stderr, "[PANIC] Unreachable\n");
-        return true;
+        return false;
     }
 
     case 0XA: {
@@ -334,7 +337,7 @@ bool chip8_execute_opcode()
         }
         // UNREACHABLE
         fprintf(stderr, "[PANIC] Unreachable\n");
-        return true;
+        return false;
     }
 
 
@@ -385,7 +388,6 @@ int main(void)
 {
     srand(time(NULL));
     chip8_load_fontset();
-    printf("%u\n", chip8_gen_random_byte());
     uint32_t size = 0;
     if (!chip8_read_file_into_memory("RPS.ch8", &size)) return 1;
 
@@ -400,8 +402,6 @@ int main(void)
 
 int main2(void)
 {
-    // chip8_load_fontset();
-
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
         fprintf(stderr, "[ERROR] Failed to Initialize SDL: %s\n", SDL_GetError());
         return 1; // Exit if Error
@@ -453,3 +453,5 @@ int main2(void)
     SDL_Quit();
     return 0;
 }
+
+// TODO: Continue Implementing the Opcodes
