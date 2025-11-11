@@ -94,7 +94,7 @@ uint16_t chip8_stack_pop()
     return chip8_bytes_to_uint16_t(high, low);
 }
 
-typedef enum Chip8_Fonts {
+enum {
     CHIP8_ZERO = 0,
     CHIP8_ONE,
     CHIP8_TWO,
@@ -114,7 +114,7 @@ typedef enum Chip8_Fonts {
 
     // Font Count
     CHIP8_FONT_COUNT
-} Chip8_Fonts;
+};
 
 #define CHIP8_FONT_HEIGHT 5
 
@@ -389,7 +389,7 @@ int main(void)
     srand(time(NULL));
     chip8_load_fontset();
     uint32_t size = 0;
-    if (!chip8_read_file_into_memory("RPS.ch8", &size)) return 1;
+    if (!chip8_read_file_into_memory("data/RPS.ch8", &size)) return 1;
 
     chip8_pc = 0x200; // start of the rom
     bool quit = false;
