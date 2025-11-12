@@ -541,8 +541,25 @@ bool chip8_render_pixels(SDL_Renderer *renderer)
     return true;
 }
 
-int main(void)
+const char *chip8_shift_args(int *argc, char ***argv)
 {
+    const char *result = **argv;
+    (*argc)--;
+    (*argv)++;
+    return result;
+}
+
+int main(int argc, char **argv)
+{
+    // Parse Command-Line Args
+    const char *program_name = chip8_shift_args(&argc, &argv);
+    if (argc <= 0) {
+        fprintf(stderr, "[Usage] %s <input_path>\n", program_name);
+        return 1;
+    }
+
+    const char *rom_path = chip8_shift_args(&argc, &argv);
+
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
         fprintf(stderr, "[ERROR] Failed to Initialize SDL: %s\n", SDL_GetError());
         return 1; // Exit if Error
@@ -567,7 +584,7 @@ int main(void)
     chip8_load_fontset();
     chip8_clear_display();
     uint32_t size = 0;
-    if (!chip8_read_file_into_memory("data/octojam2title.ch8", &size)) return 1;
+    if (!chip8_read_file_into_memory(rom_path, &size)) return 1;
     chip8_ir = 0x00;
     chip8_pc = 0x200; // start of the rom
 
@@ -598,3 +615,4 @@ int main(void)
 }
 
 // TODO: Continue Implementing the Opcodes
+// TODO: Give a more detailed Usage
