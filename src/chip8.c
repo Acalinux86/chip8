@@ -6,11 +6,12 @@
 #include <SDL2/SDL.h>
 #include <time.h>
 
-#define CHIP8_VREG_COUNT 16     /* V registers count */
-#define CHIP8_STACK_CAP  64     /* Stack capacity */
-#define CHIP8_DW         64     /* Display Width */
-#define CHIP8_DH         32     /* Display Height */
-#define CHIP8_RAM_CAP    1024*4 /* 4096 Addressable Memory */
+#define CHIP8_VREG_COUNT    16     /* V registers count */
+#define CHIP8_STACK_CAP     16     /* Stack capacity */
+#define CHIP8_DW            64     /* Display Width */
+#define CHIP8_DH            32     /* Display Height */
+#define CHIP8_RAM_CAP       1024*4 /* 4096 Addressable Memory */
+#define CHIP8_PROGRAM_ENTRY 0x200  /* Program Entry Point */
 
 #define CHIP8_WINDOW_WIDTH  640*2 /* SDL Window Width */
 #define CHIP8_WINDOW_HEIGHT 320*2 /* SDL Window Height */
@@ -578,7 +579,7 @@ bool chip8_execute_opcode(uint16_t start, uint16_t size)
     return false;
 }
 
-bool chip8_read_file_into_memory(const char *chip8_file_path, uint32_t *chip8_file_size)
+bool chip8_read_file_into_memory(const char *chip8_file_path, size_t *chip8_file_size)
 {
     FILE *fp = fopen(chip8_file_path, "rb");
     if (fp == NULL) {
@@ -601,7 +602,7 @@ bool chip8_read_file_into_memory(const char *chip8_file_path, uint32_t *chip8_fi
     rewind(fp); // Rewind the file pointer to the beginning
 
     // Read the chip8 rom directly into the chip8 memory
-    size_t bytes = fread(&chip8_memory[0x200], sizeof(uint8_t), size, fp);
+    size_t bytes = fread(&chip8_memory[CHIP8_PROGRAM_ENTRY], sizeof(uint8_t), size, fp);
     if (bytes != (size_t)size) {
         fprintf(stderr, "fread() failed: Expected %ld bytes got %zu bytes\n", size, bytes);
         return false;
@@ -692,6 +693,17 @@ const char *chip8_shift_args(int *argc, char ***argv)
     return result;
 }
 
+bool chip8_initialize_state(const char *chip8_rom_path, size_t *size)
+{
+    srand(time(NULL));
+    chip8_load_fontset();
+    chip8_clear_display();
+    if (!chip8_read_file_into_memory(chip8_rom_path, size)) return false;
+    chip8_ir = 0x00;
+    chip8_pc = CHIP8_PROGRAM_ENTRY; // start of the rom
+    return true;
+}
+
 int main(int argc, char **argv)
 {
     // Parse Command-Line Args
@@ -732,13 +744,8 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    srand(time(NULL));
-    chip8_load_fontset();
-    chip8_clear_display();
-    uint32_t size = 0;
-    if (!chip8_read_file_into_memory(rom_path, &size)) return 1;
-    chip8_ir = 0x00;
-    chip8_pc = 0x200; // start of the rom
+    size_t size = 0;
+    if (!chip8_initialize_state(rom_path, &size)) return 1;
 
     bool quit = false;
     while (!quit) {
@@ -754,7 +761,7 @@ int main(int argc, char **argv)
         if (!chip8_clear_background(renderer, background)) quit = true;
 
         printf("PC at 0X%X\n", chip8_pc);
-        if (!chip8_execute_opcode(0x200, size)) quit = true;
+        if (!chip8_execute_opcode(CHIP8_PROGRAM_ENTRY, size)) quit = true;
         if (!chip8_render_pixels(renderer))  quit = true;
         SDL_RenderPresent(renderer); // Present Background with Changes
         SDL_Delay(16); // ~60 fps
