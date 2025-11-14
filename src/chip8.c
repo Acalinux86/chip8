@@ -25,7 +25,7 @@ typedef struct Chip8_Stack {
 } Chip8_Stack;
 
 uint8_t      chip8_vregs[CHIP8_VREG_COUNT]; // Registers V0 - V15
-Chip8_Stack  chip8_stack = {0};             // 64-Byte Stack
+Chip8_Stack  chip8_stack = {0};             // 16-Byte Stack
 uint8_t      chip8_sp;                      // Stack Pointer
 uint16_t     chip8_ir;                      // Index register
 uint16_t     chip8_pc;                      // Program Counter
