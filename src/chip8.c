@@ -128,7 +128,7 @@ uint16_t chip8_stack_pop()
     return chip8_bytes_to_uint16_t(high, low);
 }
 
-enum {
+typedef enum Chip8_Keys {
     CHIP8_ZERO = 0,
     CHIP8_ONE,
     CHIP8_TWO,
@@ -148,7 +148,7 @@ enum {
 
     // Font Count
     CHIP8_FONT_COUNT
-};
+} Chip8_Keys;
 
 #define CHIP8_FONT_HEIGHT 5
 
@@ -189,23 +189,23 @@ bool chip8_load_fontset(void)
 }
 
 // Hex Representation of 0 - F Keys
-const uint8_t chip8_keys[CHIP8_FONT_COUNT] = {
-    [CHIP8_ZERO]  = 0x30, // '0'
-    [CHIP8_ONE]   = 0x31, // '1'
-    [CHIP8_TWO]   = 0x32, // '2'
-    [CHIP8_THREE] = 0x33, // '3'
-    [CHIP8_FOUR]  = 0x34, // '4'
-    [CHIP8_FIVE]  = 0x35, // '5'
-    [CHIP8_SIX]   = 0x36, // '6'
-    [CHIP8_SEVEN] = 0x37, // '7'
-    [CHIP8_EIGHT] = 0x38, // '8'
-    [CHIP8_NINE]  = 0x39, // '9'
-    [CHIP8_A]     = 0X61, // 'a'
-    [CHIP8_B]     = 0X62, // 'b'
-    [CHIP8_C]     = 0X63, // 'c'
-    [CHIP8_D]     = 0X64, // 'd'
-    [CHIP8_E]     = 0X65, // 'e'
-    [CHIP8_F]     = 0X66, // 'f'
+const SDL_Keycode chip8_keys[CHIP8_FONT_COUNT] = {
+    [CHIP8_ZERO]  = SDLK_0,
+    [CHIP8_ONE]   = SDLK_1,
+    [CHIP8_TWO]   = SDLK_2,
+    [CHIP8_THREE] = SDLK_3,
+    [CHIP8_FOUR]  = SDLK_4,
+    [CHIP8_FIVE]  = SDLK_5,
+    [CHIP8_SIX]   = SDLK_6,
+    [CHIP8_SEVEN] = SDLK_7,
+    [CHIP8_EIGHT] = SDLK_8,
+    [CHIP8_NINE]  = SDLK_9,
+    [CHIP8_A]     = SDLK_a,
+    [CHIP8_B]     = SDLK_b,
+    [CHIP8_C]     = SDLK_c,
+    [CHIP8_D]     = SDLK_d,
+    [CHIP8_E]     = SDLK_e,
+    [CHIP8_F]     = SDLK_f
 };
 
 static inline uint8_t chip8_gen_random_byte()
@@ -213,6 +213,127 @@ static inline uint8_t chip8_gen_random_byte()
     return rand() % UINT8_MAX;
 }
 
+static bool chip8_key_state[CHIP8_FONT_COUNT] = {0}; // ALL false
+
+void chip8_handle_input(SDL_Event *event)
+{
+    switch (event->type) {
+    case SDL_KEYDOWN: {
+        for (uint8_t i = 0; i < CHIP8_FONT_COUNT; ++i) {
+            if (event->key.keysym.sym == chip8_keys[i]) {
+                chip8_key_state[i] = true;
+                break;
+            }
+        }
+    } break;
+
+    case SDL_KEYUP: {
+        for (uint8_t i = 0; i < CHIP8_FONT_COUNT; ++i) {
+            if (event->key.keysym.sym == chip8_keys[i]) {
+                chip8_key_state[i] = false;
+                break;
+            }
+        }
+    } break;
+
+    default: {
+        fprintf(stderr, "[PANIC] Unreachable SDL_Type");
+        exit(EXIT_FAILURE);
+    }
+    }
+}
+
+/*bool chip8_handle_input(Chip8_Keys *key)
+{
+    switch (*key) {
+    case CHIP8_ZERO: {
+        *key = CHIP8_ZERO;
+        return true;
+    }
+
+    case CHIP8_ONE: {
+        *key = CHIP8_ONE;
+        return true;
+    }
+
+    case CHIP8_TWO: {
+        *key = CHIP8_TWO;
+        return true;
+    }
+
+    case CHIP8_THREE: {
+        *key = CHIP8_THREE;
+        return true;
+    }
+
+    case CHIP8_FOUR: {
+        *key = CHIP8_FOUR;
+        return true;
+    }
+
+    case CHIP8_FIVE: {
+        *key = CHIP8_FIVE;
+        return true;
+    }
+
+    case CHIP8_SIX: {
+        *key = CHIP8_SIX;
+        return true;
+    }
+
+    case CHIP8_SEVEN: {
+        *key = CHIP8_SEVEN;
+        return true;
+    }
+
+    case CHIP8_EIGHT: {
+        *key = CHIP8_EIGHT;
+        return true;
+    }
+
+    case CHIP8_NINE: {
+        *key = CHIP8_NINE;
+        return true;
+    }
+
+    case CHIP8_A: {
+        *key = CHIP8_A;
+        return true;
+    }
+
+    case CHIP8_B: {
+        *key = CHIP8_B;
+        return true;
+    }
+
+    case CHIP8_C: {
+        *key = CHIP8_C;
+        return true;
+    }
+
+    case CHIP8_D: {
+        *key = CHIP8_D;
+        return true;
+    }
+
+    case CHIP8_E: {
+        *key = CHIP8_E;
+        return true;
+    }
+
+    case CHIP8_F: {
+        *key = CHIP8_F;
+        return true;
+    }
+
+    default:
+        fprintf(stderr, "[PANIC] Unreachable Key\n");
+        return false;
+    }
+    fprintf(stderr, "[PANIC] Unreachable Event Type\n");
+    return false;
+}
+*/
 bool chip8_execute_opcode(uint16_t start, uint16_t size)
 {
     if (chip8_pc >= start+size) {
@@ -227,13 +348,13 @@ bool chip8_execute_opcode(uint16_t start, uint16_t size)
     switch (((opcode >> 12) & 0XF)) { // switch on first nibble
     case 0X0: {
         switch ((opcode & 0XFF)) { // switch on last byte
-        case 0XEE: { // 0X00EE
+        case 0XE0: { // 0X00E0
             chip8_clear_display();
             printf("00EE, Clear display: 0X%X\n", opcode);
             return true;
         }
 
-        case 0XE0: {  // 0X00E0
+        case 0XEE: {  // 0X00EE
             // Pop PC from stack, return from subroutine
             chip8_pc = chip8_stack_pop();
             printf("00E0, Return: 0X%X\n", opcode);
@@ -320,6 +441,12 @@ bool chip8_execute_opcode(uint16_t start, uint16_t size)
         uint8_t l_nibble = (opcode & 0XF);
 
         switch (l_nibble) {
+        case 0x0: {
+            printf("8xy0, LD Vx, Vy: 0X%X\n", opcode);
+            chip8_vregs[vidx_x] = chip8_vregs[vidx_y];
+            return true;
+        }
+
         case 0x7: {
             printf("8XY7, SUBN Vx, Vy: 0X%X\n", opcode);
             if (chip8_vregs[vidx_y] > chip8_vregs[vidx_x]) {
@@ -404,13 +531,32 @@ bool chip8_execute_opcode(uint16_t start, uint16_t size)
         }
 
         case 0X0A: {
-            printf("Unimplemented: Fx0A, LD Vx, K: 0X%X\n", opcode);
+            printf("Fx0A, LD Vx, K: 0X%X\n", opcode);
+            // put keycode in V[x]
+            bool pressed = false;
+            for (uint8_t i = 0; i < CHIP8_FONT_COUNT; ++i) {
+                if (chip8_key_state[i]) {
+                    chip8_vregs[v_index] = i;
+                    pressed = true;
+                    break;
+                }
+            }
+
+            if (!pressed) {
+                chip8_pc -=2; // Wait for key press
+            }
             return true;
         }
 
         case 0X29: {
-            printf("Unimplemented: Fx29, LD F, Vx: 0X%X\n", opcode);
-                        uint8_t v_index  = ((opcode >> 8) & 0XF);
+            printf("Fx29, LD F, Vx: 0X%X\n", opcode);
+            uint8_t v_index  = ((opcode >> 8) & 0XF);
+            chip8_ir = chip8_vregs[v_index];
+            return true;
+        }
+
+        case 0X33: {
+            // Store BCD representation in I, I+1, I+2
             return true;
         }
 
@@ -422,7 +568,6 @@ bool chip8_execute_opcode(uint16_t start, uint16_t size)
         fprintf(stderr, "[PANIC] Unreachable\n");
         return false;
     }
-
 
     default:
         fprintf(stderr, "[ERROR]: Unknown opcode: 0X%X\n", opcode);
@@ -461,8 +606,6 @@ bool chip8_read_file_into_memory(const char *chip8_file_path, uint32_t *chip8_fi
         fprintf(stderr, "fread() failed: Expected %ld bytes got %zu bytes\n", size, bytes);
         return false;
     }
-
-    if (!chip8_write_memory(0x200+(uint16_t)bytes, 0)) return false;
 
     *chip8_file_size = size;
     fclose(fp); // close file pointer
@@ -558,14 +701,23 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    const char *rom_path = chip8_shift_args(&argc, &argv);
-
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
         fprintf(stderr, "[ERROR] Failed to Initialize SDL: %s\n", SDL_GetError());
         return 1; // Exit if Error
     }
 
-    SDL_Window *window = SDL_CreateWindow("Chip8",
+    const char *prefix     = "Chip8";
+    const int prefix_len   = strlen(prefix);
+    const char *rom_path   = chip8_shift_args(&argc, &argv);
+    const int rom_path_len = strlen(rom_path);
+
+    const int buffer_len = prefix_len + rom_path_len;
+    char title[buffer_len + 1];
+
+    snprintf(title, buffer_len, "%s - %s", prefix, rom_path);
+    title[buffer_len] = '\0';
+
+    SDL_Window *window = SDL_CreateWindow(title,
                                           SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                           CHIP8_WINDOW_WIDTH, CHIP8_WINDOW_HEIGHT,
                                           SDL_WINDOW_RESIZABLE);
@@ -594,6 +746,7 @@ int main(int argc, char **argv)
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
             case SDL_QUIT: quit = true; break;
+            case SDL_KEYDOWN: chip8_handle_input(&event); break;
             }
         }
         // Update
