@@ -6,8 +6,6 @@ A simple and lightweight CHIP-8 emulator written in C using SDL2 for graphics, i
 > The emulator produces a **beep sound** immediately on startup (classic CHIP-8 behavior).
 > Lower your volume if needed.
 
----
-
 ## Input Mapping
 
 CHIP-8 uses a hexadecimal keypad.
@@ -20,8 +18,6 @@ A S D F        →   9 A B C
 Z X C V        →   D E F 0
 ```
 
----
-
 ##  Building
 
 Make sure SDL2 is installed.
@@ -32,8 +28,6 @@ make -B
 
 This will compile the emulator and output the binary into `./build/`.
 
----
-
 ## Running a ROM
 
 ```bash
@@ -42,16 +36,12 @@ This will compile the emulator and output the binary into `./build/`.
 
 You can load any `.ch8` program from the available assests folder or load your own sourced .che program.
 
----
-
 ## ROMs
 
 Most of the ROMs used during testing are from:
 
 * [https://johnearnest.github.io/chip8Archive/](https://johnearnest.github.io/chip8Archive/)
 * [https://github.com/Timendus/chip8-test-suite.git](https://github.com/Timendus/chip8-test-suite.git)
-
----
 
 ## Features
 
@@ -62,16 +52,12 @@ Most of the ROMs used during testing are from:
 * SDL2 renderer with window resizing
 * Modern, clean codebase designed for readability
 
----
-
 ## Todo
 
 * Complete missing opcodes
 * Improve sound system (volume, toggling)
 * Add debugger and step-mode
 * Add settings for custom resolutions / themes
-
----
 
 ## Acknowledgements
 
