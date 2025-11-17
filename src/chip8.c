@@ -28,12 +28,14 @@
 #define CHIP8_TIMER_HZ ((double)60.0)  /* CPU TIMER */
 
 #define CHIP8_DEBUG_RENDER 0
-#define CHIP8_DEBUG_OPCODE 1
+#define CHIP8_DEBUG_OPCODE 0
 
 #define CHIP8_SOUND_FREQUENCY 440
 #define CHIP8_SOUND_SAMPLES   44100
 #define CHIP8_SOUND_DURATION  1
-#define CHIP8_SOUND_AMPLITUDE 1
+
+/* Low Volume - 1 Amplitude Produces Loud Beep Sound Harmful for ears */
+#define CHIP8_SOUND_AMPLITUDE (0.01)
 
 #define CHIP8_SDL_ERROR(error, ret)                                 \
     do {                                                            \
@@ -1063,6 +1065,9 @@ int chip8_main(int argc, char **argv)
         SDL_Delay(1);
     }
 
+    // Cleanup
+    free(cpu.sound.wave.samples);
+    free(cpu.chip8_stack.slots);
     SDL_CloseAudioDevice(cpu.sound.dev);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
