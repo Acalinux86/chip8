@@ -1060,7 +1060,7 @@ int chip8_main(int argc, char **argv)
             if (!chip8_execute_opcode(&cpu, CHIP8_PROGRAM_ENTRY, size)) quit = true;
         }
 
-        if (!chip8_render_pixels(&cpu, renderer, GREEN))  quit = true;
+        if (!chip8_render_pixels(&cpu, renderer, RED))  quit = true;
         SDL_RenderPresent(renderer); // Present Frame with Changes
         SDL_Delay(1);
     }
