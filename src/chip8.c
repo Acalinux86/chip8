@@ -23,6 +23,7 @@
 #define CHIP8_PIXEL_HEIGHT (CHIP8_WINDOW_HEIGHT/CHIP8_DH) /* Pixel Height */
 
 #define CHIP8_FONT_HEIGHT 5 /* FONT HEIGHT - 5 bytes*/
+#define CHIP8_KEY_COUNT 16
 
 #define CHIP8_CPU_HZ   ((double)700.0) /* CPU Speed */
 #define CHIP8_TIMER_HZ ((double)60.0)  /* CPU TIMER */
@@ -83,9 +84,6 @@ typedef enum Chip8_Keys {
     CHIP8_D = 0xD,
     CHIP8_E = 0XE,
     CHIP8_F = 0XF,
-
-    // Font Count
-    CHIP8_FONT_COUNT
 } Chip8_Keys;
 
 typedef struct Chip8_CPU {
@@ -98,7 +96,7 @@ typedef struct Chip8_CPU {
 
     uint8_t  chip8_memory[CHIP8_RAM_CAP];            // Chip8 RAM
     uint8_t  chip8_frame_buffer[CHIP8_DW][CHIP8_DH]; // Frame Buffer
-    bool     chip8_key_state[CHIP8_FONT_COUNT];      // ALL false
+    bool     chip8_key_state[CHIP8_KEY_COUNT];      // ALL false
 
     Chip8_Stack  chip8_stack;                        // 16-Byte Stack
     Chip8_Sound  sound;                              // Beep Sound
@@ -121,7 +119,7 @@ typedef struct Chip8_Font {
     uint8_t font[CHIP8_FONT_HEIGHT];
 } Chip8_Font;
 
-const Chip8_Font chip8_fontset[CHIP8_FONT_COUNT] = {
+const Chip8_Font chip8_fontset[CHIP8_KEY_COUNT] = {
     [CHIP8_ZERO].font  = {0XF0, 0X90, 0X90, 0X90, 0XF0},
     [CHIP8_ONE].font   = {0X20, 0X60, 0X20, 0X20, 0X70},
     [CHIP8_TWO].font   = {0XF0, 0X10, 0XF0, 0X80, 0XF0},
@@ -229,7 +227,7 @@ bool chip8_write_memory(Chip8_CPU *cpu, const uint16_t loc, uint8_t data)
 
 bool chip8_load_fontset(Chip8_CPU *cpu)
 {
-    for (uint8_t i = 0; i < CHIP8_FONT_COUNT; ++i) {
+    for (uint8_t i = 0; i < CHIP8_KEY_COUNT; ++i) {
         for (uint8_t j = 0; j < CHIP8_FONT_HEIGHT; ++j) {
             uint16_t index = i * CHIP8_FONT_HEIGHT + j;
             if (!chip8_write_memory(cpu, index, chip8_fontset[i].font[j])) return false;
@@ -242,24 +240,24 @@ bool chip8_load_fontset(Chip8_CPU *cpu)
     return true;
 }
 
-// SDL Representation of 0 - F Keys
-const SDL_Keycode chip8_keys[CHIP8_FONT_COUNT] = {
-    [CHIP8_ZERO]  = SDLK_x,
-    [CHIP8_ONE]   = SDLK_1,
-    [CHIP8_TWO]   = SDLK_2,
-    [CHIP8_THREE] = SDLK_3,
-    [CHIP8_FOUR]  = SDLK_q,
-    [CHIP8_FIVE]  = SDLK_w,
-    [CHIP8_SIX]   = SDLK_e,
-    [CHIP8_SEVEN] = SDLK_a,
-    [CHIP8_EIGHT] = SDLK_s,
-    [CHIP8_NINE]  = SDLK_d,
-    [CHIP8_A]     = SDLK_z,
-    [CHIP8_B]     = SDLK_c,
-    [CHIP8_C]     = SDLK_4,
-    [CHIP8_D]     = SDLK_r,
-    [CHIP8_E]     = SDLK_f,
-    [CHIP8_F]     = SDLK_v,
+// SDL Representation of 0 - F Key
+const SDL_Keycode chip8_keys[CHIP8_KEY_COUNT] = {
+    [CHIP8_ZERO]  = SDLK_x, /* 0 */
+    [CHIP8_ONE]   = SDLK_1, /* 1 */
+    [CHIP8_TWO]   = SDLK_2, /* 2 */
+    [CHIP8_THREE] = SDLK_3, /* 3 */
+    [CHIP8_FOUR]  = SDLK_q, /* 4 */
+    [CHIP8_FIVE]  = SDLK_w, /* 5 */
+    [CHIP8_SIX]   = SDLK_e, /* 6 */
+    [CHIP8_SEVEN] = SDLK_a, /* 7 */
+    [CHIP8_EIGHT] = SDLK_s, /* 8 */
+    [CHIP8_NINE]  = SDLK_d, /* 9 */
+    [CHIP8_A]     = SDLK_z, /* A */
+    [CHIP8_B]     = SDLK_c, /* B */
+    [CHIP8_C]     = SDLK_4, /* C */
+    [CHIP8_D]     = SDLK_r, /* D */
+    [CHIP8_E]     = SDLK_f, /* E */
+    [CHIP8_F]     = SDLK_v  /* F */
 };
 
 uint8_t chip8_get_frame_buffer(Chip8_CPU *cpu, uint16_t x, uint16_t y)
@@ -339,29 +337,22 @@ static inline uint8_t chip8_gen_random_byte()
 
 void chip8_handle_input(Chip8_CPU *cpu, SDL_Event *event)
 {
-    switch (event->type) {
-    case SDL_KEYDOWN: {
-        for (uint8_t i = 0; i < CHIP8_FONT_COUNT; ++i) {
+    if (event->type == SDL_KEYDOWN) {
+        for (uint8_t i = 0; i < CHIP8_KEY_COUNT; ++i) {
             if (event->key.keysym.sym == chip8_keys[i]) {
                 cpu->chip8_key_state[i] = true;
                 break;
             }
         }
-    } break;
+    }
 
-    case SDL_KEYUP: {
-        for (uint8_t i = 0; i < CHIP8_FONT_COUNT; ++i) {
+    if (event->type == SDL_KEYUP){
+        for (uint8_t i = 0; i < CHIP8_KEY_COUNT; ++i) {
             if (event->key.keysym.sym == chip8_keys[i]) {
                 cpu->chip8_key_state[i] = false;
                 break;
             }
         }
-    } break;
-
-    default: {
-        fprintf(stderr, "[PANIC] Unreachable SDL_Type");
-        exit(EXIT_FAILURE);
-    }
     }
 }
 
@@ -708,7 +699,7 @@ bool chip8_execute_opcode(Chip8_CPU *cpu, uint16_t start, uint16_t size)
 #endif
             // put keycode in V[x]
             bool pressed = false;
-            for (uint8_t i = 0; i < CHIP8_FONT_COUNT; ++i) {
+            for (uint8_t i = 0; i < CHIP8_KEY_COUNT; ++i) {
                 if (cpu->chip8_key_state[i]) {
                     cpu->chip8_vregs[v_index] = i;
                     pressed = true;
@@ -1024,6 +1015,9 @@ int chip8_main(int argc, char **argv)
 
     bool quit = false;
     while (!quit) {
+
+        SDL_PumpEvents();
+
         double now = (double)SDL_GetTicks();
         double elapsed = now - last_time;
         last_time = now;
@@ -1033,9 +1027,11 @@ int chip8_main(int argc, char **argv)
 
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
-            switch (event.type) {
-            case SDL_QUIT: quit = true; break;
-            chip8_handle_input(&cpu, &event); break;
+            if (event.type == SDL_QUIT) {
+                quit = true;
+            }
+            if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
+                chip8_handle_input(&cpu, &event);
             }
         }
         // Update
