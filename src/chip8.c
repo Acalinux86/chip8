@@ -86,20 +86,25 @@ typedef enum Chip8_Keys {
     CHIP8_F = 0XF,
 } Chip8_Keys;
 
+typedef uint8_t Chip8_Vregs[CHIP8_VREG_COUNT]; // Registers V0 - V15
+typedef uint8_t Chip8_Mem[CHIP8_RAM_CAP];      // Chip8 Ram
+typedef uint8_t Chip8_Buffer[CHIP8_DW][CHIP8_DH]; // Frame Buffer
+
 typedef struct Chip8_CPU {
-    uint8_t  chip8_vregs[CHIP8_VREG_COUNT];          // Registers V0 - V15
-    uint16_t chip8_ir;                               // Index register
-    uint16_t chip8_pc;                               // Program Counter
+    Chip8_Vregs chip8_vregs;
+
+    // Index register, Program Counter
+    uint16_t chip8_ir, chip8_pc;
 
     uint8_t  chip8_d_timer;                          // Delay Timer
     uint8_t  chip8_s_timer;                          // Sound Timer
 
-    uint8_t  chip8_memory[CHIP8_RAM_CAP];            // Chip8 RAM
-    uint8_t  chip8_frame_buffer[CHIP8_DW][CHIP8_DH]; // Frame Buffer
-    bool     chip8_key_state[CHIP8_KEY_COUNT];      // ALL false
+    Chip8_Mem  chip8_memory;
+    Chip8_Buffer chip8_frame_buffer;
+    bool chip8_key_state[CHIP8_KEY_COUNT];      // ALL false
 
-    Chip8_Stack  chip8_stack;                        // 16-Byte Stack
-    Chip8_Sound  sound;                              // Beep Sound
+    Chip8_Stack  chip8_stack; // 16-Byte Stack
+    Chip8_Sound  sound; // Beep Sound
 } Chip8_CPU;
 
 typedef struct Chip8_Color {
