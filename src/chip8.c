@@ -31,6 +31,8 @@
 #define CHIP8_DEBUG_RENDER 0
 #define CHIP8_DEBUG_OPCODE 0
 
+#define CHIP8_PREFIX "Chip8"
+
 #define CHIP8_SOUND_FREQUENCY 440
 #define CHIP8_SOUND_SAMPLES   44100
 #define CHIP8_SOUND_DURATION  1
@@ -93,15 +95,17 @@ typedef uint8_t Chip8_Buffer[CHIP8_DW][CHIP8_DH]; // Frame Buffer
 typedef struct Chip8_CPU {
     Chip8_Vregs chip8_vregs;
 
-    // Index register, Program Counter
+    // Instruction register, Program Counter
     uint16_t chip8_ir, chip8_pc;
 
-    uint8_t  chip8_d_timer;                          // Delay Timer
-    uint8_t  chip8_s_timer;                          // Sound Timer
+    uint8_t  chip8_d_timer; // Delay Timer
+    uint8_t  chip8_s_timer; // Sound Timer
 
     Chip8_Mem  chip8_memory;
     Chip8_Buffer chip8_frame_buffer;
-    bool chip8_key_state[CHIP8_KEY_COUNT];      // ALL false
+
+      // ALL false
+    bool chip8_key_state[CHIP8_KEY_COUNT];
 
     Chip8_Stack  chip8_stack; // 16-Byte Stack
     Chip8_Sound  sound; // Beep Sound
@@ -930,7 +934,7 @@ bool chip8_initialize_states(Chip8_CPU *cpu, const char *chip8_rom_path, size_t 
     // Initialize Stack
     cpu->chip8_stack.capacity = CHIP8_STACK_CAP;
     cpu->chip8_stack.count    = 0;
-    cpu->chip8_stack.slots    = malloc(sizeof(uint8_t)*cpu->chip8_stack.capacity);
+    cpu->chip8_stack.slots    = malloc(sizeof(*cpu->chip8_stack.slots)*cpu->chip8_stack.capacity);
     if (cpu->chip8_stack.slots == NULL) {
         fprintf(stderr, "[ERROR] Memory Allocation for Stack Slots Failed\n");
         return false;
@@ -944,7 +948,7 @@ bool chip8_initialize_states(Chip8_CPU *cpu, const char *chip8_rom_path, size_t 
     cpu->sound.playing     = false;
     cpu->sound.wave.count    = 0;
     cpu->sound.wave.capacity = cpu->sound.sample_rate*cpu->sound.duration;
-    cpu->sound.wave.samples  = malloc(sizeof(double)*cpu->sound.wave.capacity);
+    cpu->sound.wave.samples  = malloc(sizeof(*cpu->sound.wave.samples)*cpu->sound.wave.capacity);
     if (cpu->sound.wave.samples == NULL) {
         fprintf(stderr, "[ERROR] Memory Allocation for Samples Failed\n");
         return false;
@@ -967,6 +971,25 @@ bool chip8_initialize_states(Chip8_CPU *cpu, const char *chip8_rom_path, size_t 
     return true;
 }
 
+char *chip8_get_title(const char *rom_path)
+{
+    const char *prefix     = CHIP8_PREFIX;
+    const int prefix_len   = strlen(prefix);
+    const int rom_path_len = strlen(rom_path);
+
+    const int buffer_len = prefix_len + rom_path_len;
+    char *title = (char *)malloc(sizeof(*title) * (buffer_len + 1));
+    if (title == NULL)
+    {
+        fprintf(stderr, "ERROR: memory allocation for title failed\n");
+        return NULL;
+    }
+
+    snprintf(title, buffer_len, "%s - %s", prefix, rom_path);
+    title[buffer_len] = '\0';
+    return title;
+}
+
 #define chip8_main main
 int chip8_main(int argc, char **argv)
 {
@@ -983,16 +1006,9 @@ int chip8_main(int argc, char **argv)
         CHIP8_SDL_ERROR("Failed to Initialize SDL", 1);
     }
 
-    const char *prefix     = "Chip8";
-    const int prefix_len   = strlen(prefix);
-    const char *rom_path   = chip8_shift_args(&argc, &argv);
-    const int rom_path_len = strlen(rom_path);
-
-    const int buffer_len = prefix_len + rom_path_len;
-    char title[buffer_len + 1];
-
-    snprintf(title, buffer_len, "%s - %s", prefix, rom_path);
-    title[buffer_len] = '\0';
+    const char *rom_path = chip8_shift_args(&argc, &argv);
+    char *title          = chip8_get_title(rom_path);
+    assert(title != NULL);
 
     SDL_Window *window = SDL_CreateWindow(title,
                                           SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -1067,6 +1083,7 @@ int chip8_main(int argc, char **argv)
     }
 
     // Cleanup
+    free(title);
     free(cpu.sound.wave.samples);
     free(cpu.chip8_stack.slots);
     SDL_CloseAudioDevice(cpu.sound.dev);
