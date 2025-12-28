@@ -31,7 +31,7 @@ This will compile the emulator and output the binary into `./build/`.
 ## Running a ROM
 
 ```bash
-./build/chip8 ./assets/octojam2title.ch8
+./build/chip8 ./tests/john/octojam1title.ch8
 ```
 
 You can load any `.ch8` program from the available assests folder or load your own sourced .che program.
