@@ -16,8 +16,8 @@
 #define CHIP8_RAM_CAP       (1024*4) /* 4096 Addressable Memory */
 #define CHIP8_PROGRAM_ENTRY 0x200    /* Program Entry Point */
 
-#define CHIP8_WINDOW_WIDTH  640*2    /* SDL Window Width */
-#define CHIP8_WINDOW_HEIGHT 320*2    /* SDL Window Height */
+#define CHIP8_WINDOW_WIDTH  (640*2)    /* SDL Window Width */
+#define CHIP8_WINDOW_HEIGHT (320*2)    /* SDL Window Height */
 
 #define CHIP8_PIXEL_WIDTH  (CHIP8_WINDOW_WIDTH/CHIP8_DW)  /* Pixel Width */
 #define CHIP8_PIXEL_HEIGHT (CHIP8_WINDOW_HEIGHT/CHIP8_DH) /* Pixel Height */
@@ -147,7 +147,7 @@ const Chip8_Font chip8_fontset[CHIP8_KEY_COUNT] = {
     [CHIP8_F].font     = {0XF0, 0X80, 0XF0, 0X80, 0X80},
 };
 
-bool chip8_add_sample(Chip8_Wave *wave, double sample)
+bool chip8_add_sample(Chip8_Wave *wave, const double sample)
 {
     if (wave->count >= wave->capacity) {
         fprintf(stderr, "[ERROR] Wave Buffer Capped: cannot add more samples\n");
@@ -160,8 +160,8 @@ bool chip8_add_sample(Chip8_Wave *wave, double sample)
 
 void chip8_generate_sound_wave(Chip8_CPU *cpu)
 {
-    int num_samples = cpu->sound.sample_rate * cpu->sound.duration;
-    double period   = cpu->sound.sample_rate / cpu->sound.frequency;
+    const int num_samples = (int)(cpu->sound.sample_rate * cpu->sound.duration);
+    const double period   = cpu->sound.sample_rate / cpu->sound.frequency;
     for (int i = 0; i < num_samples; ++i) {
         double y = (fmod(i, period) < period / 2) ? cpu->sound.amplitude: -cpu->sound.amplitude;
         chip8_add_sample(&cpu->sound.wave, y);
@@ -170,30 +170,29 @@ void chip8_generate_sound_wave(Chip8_CPU *cpu)
 
 // NOTE: Define an Audio callback Function to populate the buffer
 void chip8_audio_callback(void *UserData, uint8_t *stream, int len) {
-    Chip8_Sound *sound = (Chip8_Sound*)UserData; // Get Sound Object
-    Chip8_Wave  *waves = &sound->wave;           // Get  Wave Values
-    int sample_to_fill = len / sizeof(int16_t);
+    const Chip8_Sound *sound = (Chip8_Sound*)UserData; // Get Sound Object
+    const Chip8_Wave  *waves = &sound->wave;           // Get  Wave Values
+    const size_t sample_to_fill = (size_t)len / sizeof(int16_t);
 
     static int sample_index = 0;
     int16_t *buffer = (int16_t*)stream;
 
-    for (int i = 0; i < sample_to_fill; ++i) {
+    for (size_t i = 0; i < sample_to_fill; ++i) {
         if (sound->playing && (size_t)sample_index < waves->count) {
             buffer[i] = (int16_t)(waves->samples[sample_index] * 32767);
             sample_index++;
         } else {
             buffer[i] = 0;
         }
-        sample_index %= waves->count;
+        sample_index %= (int)waves->count;
     }
 }
 
 bool chip8_open_audio_device(Chip8_CPU *cpu)
 {
-    SDL_AudioSpec want, have;
+    SDL_AudioSpec want = {0}, have;
 
-    memset(&want, 0, sizeof(want));
-    want.freq = cpu->sound.sample_rate;
+    want.freq = (int)cpu->sound.sample_rate;
     want.format = AUDIO_S16SYS;
     want.channels = 1;
     want.samples = 4096;
@@ -269,7 +268,7 @@ const SDL_Keycode chip8_keys[CHIP8_KEY_COUNT] = {
     [CHIP8_F]     = SDLK_v  /* F */
 };
 
-uint8_t chip8_get_frame_buffer(Chip8_CPU *cpu, uint16_t x, uint16_t y)
+uint8_t chip8_get_frame_buffer(const Chip8_CPU *cpu, const uint16_t x, const uint16_t y)
 {
     if (((int16_t)x >= 0 && x < CHIP8_DW) &&
         ((int16_t)y >= 0 && y < CHIP8_DH))
@@ -299,18 +298,18 @@ void chip8_clear_display(Chip8_CPU *cpu)
     memset(cpu->chip8_frame_buffer, 0, sizeof(cpu->chip8_frame_buffer));
 }
 
-static inline void chip8_split_uint16_t(uint16_t value, uint8_t *high, uint8_t *low)
+static inline void chip8_split_uint16_t(const uint16_t value, uint8_t *high, uint8_t *low)
 {
     *high = value >> 8;   // higher byte
     *low  = value & 0xFF; // low-byte
 }
 
-static inline uint16_t chip8_bytes_to_uint16_t(uint8_t high, uint8_t low)
+static inline uint16_t chip8_bytes_to_uint16_t(const uint8_t high, const uint8_t low)
 {
     return (high << 8) | low;
 }
 
-bool chip8_stack_push(Chip8_CPU *cpu, uint16_t value)
+bool chip8_stack_push(Chip8_CPU *cpu, const uint16_t value)
 {
     if (cpu->chip8_stack.count == cpu->chip8_stack.capacity) {
         fprintf(stderr, "[ERROR] Stack Full\n");
@@ -333,18 +332,18 @@ uint16_t chip8_stack_pop(Chip8_CPU *cpu)
         exit(1);
     }
 
-    uint8_t low  = cpu->chip8_stack.slots[--cpu->chip8_stack.count]; // Pop low
-    uint8_t high = cpu->chip8_stack.slots[--cpu->chip8_stack.count]; // Pop high
+    const uint8_t low  = cpu->chip8_stack.slots[--cpu->chip8_stack.count]; // Pop low
+    const uint8_t high = cpu->chip8_stack.slots[--cpu->chip8_stack.count]; // Pop high
 
     return chip8_bytes_to_uint16_t(high, low);
 }
 
-static inline uint8_t chip8_gen_random_byte()
+static inline uint8_t chip8_gen_random_byte(void)
 {
     return (uint8_t)(rand() % (UINT8_MAX + 1));
 }
 
-void chip8_handle_input(Chip8_CPU *cpu, SDL_Event *event)
+void chip8_handle_input(Chip8_CPU *cpu, const SDL_Event *event)
 {
     if (event->type == SDL_KEYDOWN) {
         for (uint8_t i = 0; i < CHIP8_KEY_COUNT; ++i) {
@@ -365,7 +364,7 @@ void chip8_handle_input(Chip8_CPU *cpu, SDL_Event *event)
     }
 }
 
-bool chip8_execute_opcode(Chip8_CPU *cpu, uint16_t start, uint16_t size)
+bool chip8_execute_opcode(Chip8_CPU *cpu, const uint16_t start, const uint16_t size)
 {
     if (cpu->chip8_pc >= start+size) {
         printf("Finished\n");
@@ -376,8 +375,8 @@ bool chip8_execute_opcode(Chip8_CPU *cpu, uint16_t start, uint16_t size)
     printf("PC at 0X%X\n", cpu->chip8_pc);
 #endif
 
-    uint8_t  high   = chip8_read_memory(cpu, cpu->chip8_pc);
-    uint8_t  low    = chip8_read_memory(cpu, cpu->chip8_pc+1);
+    const uint8_t high = chip8_read_memory(cpu, cpu->chip8_pc);
+    const uint8_t low  = chip8_read_memory(cpu, cpu->chip8_pc+1);
     uint16_t opcode = chip8_bytes_to_uint16_t(high, low);
 
     cpu->chip8_pc += 2;
@@ -435,8 +434,8 @@ bool chip8_execute_opcode(Chip8_CPU *cpu, uint16_t start, uint16_t size)
 #if CHIP8_DEBUG_OPCODE
         printf("3XKK, SE: Vx Byte: 0X%X\n", opcode);
 #endif
-        uint8_t v_index  = ((opcode >> 8) & 0XF);
-        uint8_t low_byte = opcode & 0XFF;
+        const uint8_t v_index  = ((opcode >> 8) & 0XF);
+        const uint8_t low_byte = opcode & 0XFF;
 
         if (cpu->chip8_vregs[v_index] == low_byte) {
             cpu->chip8_pc += 2; // skip two => 2 u8s = u16, next pc
@@ -452,8 +451,8 @@ bool chip8_execute_opcode(Chip8_CPU *cpu, uint16_t start, uint16_t size)
 #if CHIP8_DEBUG_OPCODE
         printf("4XKK, SNE: Vx Byte: 0X%X\n", opcode);
 #endif
-        uint8_t v_index  = ((opcode >> 8) & 0XF);
-        uint8_t low_byte = opcode & 0XFF;
+        const uint8_t v_index  = ((opcode >> 8) & 0XF);
+        const uint8_t low_byte = opcode & 0XFF;
 
         if (cpu->chip8_vregs[v_index] != low_byte) {
             cpu->chip8_pc += 2; // skip two => 2 u8s = u16, next pc
@@ -469,8 +468,8 @@ bool chip8_execute_opcode(Chip8_CPU *cpu, uint16_t start, uint16_t size)
 #if CHIP8_DEBUG_OPCODE
         printf("0X6KK, LD Vx, byte: 0X%X\n", opcode);
 #endif
-        uint8_t v_index = ((opcode >> 8) & 0XF);
-        uint8_t low_byte = opcode & 0XFF;
+        const uint8_t v_index = ((opcode >> 8) & 0XF);
+        const uint8_t low_byte = opcode & 0XFF;
 
         cpu->chip8_vregs[v_index] = low_byte;
         return true;
@@ -481,8 +480,8 @@ bool chip8_execute_opcode(Chip8_CPU *cpu, uint16_t start, uint16_t size)
 #if CHIP8_DEBUG_OPCODE
         printf("7XKK, ADD Vx, byte\n");
 #endif
-        uint8_t v_index  = ((opcode >> 8) & 0XF);
-        uint8_t low_byte = opcode & 0XFF;
+        const uint8_t v_index  = ((opcode >> 8) & 0XF);
+        const uint8_t low_byte = opcode & 0XFF;
 
         cpu->chip8_vregs[v_index] += low_byte; // Add Vx + byte, store it back to Vx
         return true;
@@ -490,9 +489,9 @@ bool chip8_execute_opcode(Chip8_CPU *cpu, uint16_t start, uint16_t size)
 
     case 0X8: {
         // 0X8ED7
-        uint8_t vidx_x   = ((opcode >> 8) & 0XF); // 2nd nibble , x index into v
-        uint8_t vidx_y   = ((opcode >> 4) & 0XF); // 3rd nibble , y index into v
-        uint8_t l_nibble = (opcode & 0XF);
+        const uint8_t vidx_x = ((opcode >> 8) & 0XF); // 2nd nibble , x index into v
+        const uint8_t vidx_y = ((opcode >> 4) & 0XF); // 3rd nibble , y index into v
+        const uint8_t l_nibble = (opcode & 0XF);
 
         switch (l_nibble) {
         case 0x0: {
@@ -531,16 +530,16 @@ bool chip8_execute_opcode(Chip8_CPU *cpu, uint16_t start, uint16_t size)
 #if CHIP8_DEBUG_OPCODE
             printf("8xy4, ADD Vx, Vy: 0X%X\n", opcode);
 #endif
-            uint16_t value = (uint16_t) cpu->chip8_vregs[vidx_x] + (uint16_t) cpu->chip8_vregs[vidx_y];
-            uint8_t high;
-            uint8_t low;
-            chip8_split_uint16_t(value, &high, &low);
+            const uint16_t value = (uint16_t) cpu->chip8_vregs[vidx_x] + (uint16_t) cpu->chip8_vregs[vidx_y];
+            uint8_t h;
+            uint8_t l;
+            chip8_split_uint16_t(value, &h, &l);
             if (value > UINT8_MAX) {
                 cpu->chip8_vregs[0XF] = 1;
             } else {
                 cpu->chip8_vregs[0XF] = 0;
             }
-            cpu->chip8_vregs[vidx_x] = low;
+            cpu->chip8_vregs[vidx_x] = l;
             return true;
         }
 
@@ -606,8 +605,8 @@ bool chip8_execute_opcode(Chip8_CPU *cpu, uint16_t start, uint16_t size)
 
     case 0x9: {
         // 9xy0 - SNE Vx, Vy
-        uint8_t vidx_x   = ((opcode >> 8) & 0XF); // 2nd nibble , x index into v
-        uint8_t vidx_y   = ((opcode >> 4) & 0XF); // 3rd nibble , y index into v
+        const uint8_t vidx_x   = ((opcode >> 8) & 0XF); // 2nd nibble , x index into v
+        const uint8_t vidx_y   = ((opcode >> 4) & 0XF); // 3rd nibble , y index into v
         if (cpu->chip8_vregs[vidx_x] != cpu->chip8_vregs[vidx_y]) {
             cpu->chip8_pc += 2; // Skip increment by two
         } else {
@@ -632,9 +631,9 @@ bool chip8_execute_opcode(Chip8_CPU *cpu, uint16_t start, uint16_t size)
 #if CHIP8_DEBUG_OPCODE
         printf("CXKK, RND Vx Byte: 0X%X\n", opcode);
 #endif
-        uint8_t v_index  = ((opcode >> 8) & 0XF);
-        uint8_t low_byte =  (opcode & 0XFF);
-        uint8_t random   = chip8_gen_random_byte();
+        const uint8_t v_index  = ((opcode >> 8) & 0XF);
+        const uint8_t low_byte =  (opcode & 0XFF);
+        const uint8_t random   = chip8_gen_random_byte();
 
         cpu->chip8_vregs[v_index] = random & low_byte;
         return true;
@@ -646,21 +645,21 @@ bool chip8_execute_opcode(Chip8_CPU *cpu, uint16_t start, uint16_t size)
 #if CHIP8_DEBUG_OPCODE
         printf("DXYN, DRW Vx, Vy, Nibble: 0X%X\n", opcode);
 #endif
-        uint8_t vidx_x  = ((opcode >> 8) & 0XF);
-        uint8_t vidx_y  = ((opcode >> 4) & 0XF);
-        uint8_t n_bytes = (opcode & 0XF);
-        uint8_t x       = cpu->chip8_vregs[vidx_x];
-        uint8_t y       = cpu->chip8_vregs[vidx_y];
+        const uint8_t vidx_x  = ((opcode >> 8) & 0XF);
+        const uint8_t vidx_y  = ((opcode >> 4) & 0XF);
+        const uint8_t n_bytes = (opcode & 0XF);
+        const uint8_t x       = cpu->chip8_vregs[vidx_x];
+        const uint8_t y       = cpu->chip8_vregs[vidx_y];
 
         cpu->chip8_vregs[0XF] = 0; // Reset V[0XF]
         for (uint8_t i = 0; i < n_bytes; ++i) {
             uint8_t sprite_byte = chip8_read_memory(cpu, cpu->chip8_ir +i);
             for (uint8_t j = 0; j < 8; ++j) {
                 if ((sprite_byte & (0x80 >> j))) {
-                    uint8_t pixel_x = (x + j) % CHIP8_DW;
-                    uint8_t pixel_y = (y + i) % CHIP8_DH;
+                    const uint8_t pixel_x = (x + j) % CHIP8_DW;
+                    const uint8_t pixel_y = (y + i) % CHIP8_DH;
 
-                    uint8_t current = chip8_get_frame_buffer(cpu, pixel_x, pixel_y);
+                    const uint8_t current = chip8_get_frame_buffer(cpu, pixel_x, pixel_y);
 
                     if (current) {
                         cpu->chip8_vregs[0XF] = 1; // Collision
@@ -690,8 +689,8 @@ bool chip8_execute_opcode(Chip8_CPU *cpu, uint16_t start, uint16_t size)
     }
 
     case 0XF: {
-        uint8_t v_index  = ((opcode >> 8) & 0XF);
-        uint8_t low_byte = (opcode & 0XFF);
+        const uint8_t v_index  = ((opcode >> 8) & 0XF);
+        const uint8_t low_byte = (opcode & 0XFF);
 
         switch (low_byte) {
         case 0X1E: {
@@ -761,10 +760,10 @@ bool chip8_execute_opcode(Chip8_CPU *cpu, uint16_t start, uint16_t size)
 #if CHIP8_DEBUG_OPCODE
             printf("Fx33 - LD B, Vx\n");
 #endif
-            uint8_t value = cpu->chip8_vregs[v_index];
-            uint8_t hunds = (value / 100);     // Hundreds
-            uint8_t tens  = (value / 10) % 10; // Tens
-            uint8_t ones  = (value % 10);      // Ones
+            const uint8_t value = cpu->chip8_vregs[v_index];
+            const uint8_t hunds = (value / 100);     // Hundreds
+            const uint8_t tens  = (value / 10) % 10; // Tens
+            const uint8_t ones  = (value % 10);      // Ones
 
             if (!chip8_write_memory(cpu, cpu->chip8_ir, hunds))    return false;
             if (!chip8_write_memory(cpu, cpu->chip8_ir + 1, tens)) return false;
@@ -860,8 +859,7 @@ bool chip8_draw_pixel(SDL_Renderer *renderer, int x, int y, int w, int h, const 
 {
     const SDL_Rect pixel = {x , y , w , h};
 
-    int ret;
-    ret = SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND); // Set blend mode
+    int ret = SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND); // Set blend mode
     if (ret != 0) {
         CHIP8_SDL_ERROR("SDL_SetRenderDrawBlendMode", false);
     }
@@ -884,8 +882,7 @@ bool chip8_draw_pixel(SDL_Renderer *renderer, int x, int y, int w, int h, const 
 
 bool chip8_clear_background(SDL_Renderer *renderer, const Chip8_Color color)
 {
-    int ret;
-    ret = SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a); // Set Background Color
+    int ret = SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a); // Set Background Color
     if (ret != 0) {
         CHIP8_SDL_ERROR("SDL_SetRenderDrawColor", false);
     }
@@ -897,7 +894,7 @@ bool chip8_clear_background(SDL_Renderer *renderer, const Chip8_Color color)
     return true;
 }
 
-bool chip8_render_pixels(Chip8_CPU *cpu, SDL_Renderer *renderer, const Chip8_Color color)
+bool chip8_render_pixels(const Chip8_CPU *cpu, SDL_Renderer *renderer, const Chip8_Color color)
 {
     for (int j = 0; j < CHIP8_DH; ++j) {
         for (int i = 0; i < CHIP8_DW; ++i) {
@@ -947,7 +944,7 @@ bool chip8_initialize_states(Chip8_CPU *cpu, const char *chip8_rom_path, size_t 
     cpu->sound.frequency   = CHIP8_SOUND_FREQUENCY;
     cpu->sound.playing     = false;
     cpu->sound.wave.count    = 0;
-    cpu->sound.wave.capacity = cpu->sound.sample_rate*cpu->sound.duration;
+    cpu->sound.wave.capacity = (size_t)(cpu->sound.sample_rate*cpu->sound.duration);
     cpu->sound.wave.samples  = malloc(sizeof(*cpu->sound.wave.samples)*cpu->sound.wave.capacity);
     if (cpu->sound.wave.samples == NULL) {
         fprintf(stderr, "[ERROR] Memory Allocation for Samples Failed\n");
@@ -973,11 +970,11 @@ bool chip8_initialize_states(Chip8_CPU *cpu, const char *chip8_rom_path, size_t 
 
 char *chip8_get_title(const char *rom_path)
 {
-    const char *prefix     = CHIP8_PREFIX;
-    const int prefix_len   = strlen(prefix);
-    const int rom_path_len = strlen(rom_path);
+    const char *prefix        = CHIP8_PREFIX;
+    const size_t prefix_len   = strlen(prefix);
+    const size_t rom_path_len = strlen(rom_path);
 
-    const int buffer_len = prefix_len + rom_path_len;
+    const size_t buffer_len = prefix_len + rom_path_len;
     char *title = (char *)malloc(sizeof(*title) * (buffer_len + 1));
     if (title == NULL)
     {
@@ -1025,7 +1022,13 @@ int chip8_main(int argc, char **argv)
 
     size_t size = 0;
     static Chip8_CPU cpu = {0};
-    if(!chip8_initialize_states(&cpu, rom_path, &size)) return 1;
+    if(!chip8_initialize_states(&cpu, rom_path, &size)) {
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        free(title);
+        return 1;
+    }
 
     double last_time = (double)SDL_GetTicks();
     double timer_accumulator = 0.0;
