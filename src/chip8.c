@@ -169,7 +169,7 @@ void chip8_generate_sound_wave(Chip8_CPU *cpu)
 }
 
 // NOTE: Define an Audio callback Function to populate the buffer
-void chip8_audio_callback(void *UserData, uint8_t *stream, int len) {
+void chip8_audio_callback(void *UserData, uint8_t *stream, const int len) {
     const Chip8_Sound *sound = (Chip8_Sound*)UserData; // Get Sound Object
     const Chip8_Wave  *waves = &sound->wave;           // Get  Wave Values
     const size_t sample_to_fill = (size_t)len / sizeof(int16_t);
@@ -221,7 +221,7 @@ uint8_t chip8_read_memory(const Chip8_CPU *cpu, const uint16_t loc)
     }
 }
 
-bool chip8_write_memory(Chip8_CPU *cpu, const uint16_t loc, uint8_t data)
+bool chip8_write_memory(Chip8_CPU *cpu, const uint16_t loc, const uint8_t data)
 {
     // casting to int16_t because gcc will just wrap the negative values
     if ((int16_t)loc >= 0 && loc < CHIP8_RAM_CAP) {
@@ -237,7 +237,7 @@ bool chip8_load_fontset(Chip8_CPU *cpu)
 {
     for (uint8_t i = 0; i < CHIP8_KEY_COUNT; ++i) {
         for (uint8_t j = 0; j < CHIP8_FONT_HEIGHT; ++j) {
-            uint16_t index = i * CHIP8_FONT_HEIGHT + j;
+            const uint16_t index = i * CHIP8_FONT_HEIGHT + j;
             if (!chip8_write_memory(cpu, index, chip8_fontset[i].font[j])) return false;
         }
     }
